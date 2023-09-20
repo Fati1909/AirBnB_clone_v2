@@ -38,3 +38,12 @@ class BaseModel:
         dictionary['created_at'] = self.created_at.isoformat()
         dictionary['updated_at'] = self.updated_at.isoformat()
         return dictionary
+
+    def _assign_attributes(self, attrubutes):
+        """Assigns the attrubutes from kwargs"""
+        formatStr = "%Y-%m-%dT%H:%M:%S.%f"
+        for key, value in attrubutes.items():
+            if key == "created_at" or key == "updated_at":
+                self.__dict__[key] = datetime.strptime(value, formatStr)
+            else:
+                self.__dict__[key] = value

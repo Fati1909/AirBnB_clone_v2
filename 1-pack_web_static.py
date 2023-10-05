@@ -1,9 +1,12 @@
 #!/usr/bin/python3
 """script that generates a .tgz"""
+
 from fabric.api import local
 from datetime import datetime
+from fabric.decorators import runs_once
 
 
+@runs_once
 def do_pack():
     """ generates a .tgz archive from the contents of
     the web_static folder of your AirBnB Clone repo

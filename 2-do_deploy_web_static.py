@@ -1,65 +1,57 @@
 #!/usr/bin/python3
-"""
-Fabric script that distributes an archive to web servers.
-"""
-
+"""Fabric script that distributes an archive to your web servers"""
+from fabric.api import local, env, put, run
 from datetime import datetime
-from fabric.api import local, put, run, env
-import os
+from os import path
+from fabric.decorators import runs_once
 
-env.hosts = ["100.24.242.38", "100.24.253.139"]
+
+env.hosts = ['54.237.65.38', '54.237.210.238']
+
+# Set the username
 env.user = "ubuntu"
 
+# Set private key path
+env.key_filename = "~/.ssh/id_rsa"
 
+
+@runs_once
 def do_pack():
-    """Pack web_static into .tgz archive."""
+    """ generates a .tgz archive from the contents of
+    the web_static folder of your AirBnB Clone repo
+    """
 
     local("mkdir -p versions")
-    date = datetime.now().strftime("%Y%m%d%H%M%S")
-    archive_path = "versions/web_static_{}.tgz".format(date)
-
-    if local("tar -cvzf {} web_static".format(archive_path)).succeeded:
-        return archive_path
-    return None
+    dformat = "%Y%m%d%H%M%S"
+    archive_path = "versions/web_static_{}.tgz".format(
+            datetime.strftime(datetime.now(), dformat))
+    result = local("tar -cvzf {} web_static".format(archive_path))
+    if result.failed:
+        return None
+    return archive_path
 
 
 def do_deploy(archive_path):
-    """Deploy an archive to web servers."""
-
-    if not os.path.exists(archive_path):
-        return False
+    """distributes an archive to your web servers"""
 
     try:
-        archive_name = os.path.basename(archive_path)
-        base_name = os.path.splitext(archive_name)[0]
-        release_dir = "/data/web_static/releases/{}".format(base_name)
+        if not path.exists(archive_path):
+            return False
 
-        # Transfer archive
-        put(archive_path, "/tmp/")
-
-        # Create target directory
-        run("sudo mkdir -p {}".format(release_dir))
-
-        # Unpack archive
-        run("sudo tar -xzf /tmp/{} -C {}".format(archive_name, release_dir))
-
-        # Remove archive
-        run("sudo rm /tmp/{}".format(archive_name))
-
-        # Move unpacked files from web_static to release dir
-        run("sudo mv {}/web_static/* {}/".format(release_dir, release_dir))
-
-        # Remove web_static folder in release dir
-        run("sudo rm -rf {}/web_static".format(release_dir))
-
-        # Remove current symlink
-        run("sudo rm -rf /data/web_static/current")
-
-        # Create new symlink
-        run("sudo ln -s {} /data/web_static/current".format(release_dir))
-
+        dir_path = "/data/web_static/releases/"
+        filename = path.basename(archive_path)
+        file_no_ext, ext = path.splitext(filename)
+        put(archive_path, "/tmp/{}".format(filename))
+        run("rm -rf {}{}".format(dir_path, file_no_ext))
+        run("mkdir -p {}{}".format(dir_path, file_without_ext))
+        run("tar -xzf /tmp/{} -C {}{}".format(filename, dir_path, file_no_ext))
+        run("rm /tmp/{}".format(filename))
+        run("mv {0}{1}/web_static/* {0}{1}/".format(dir_path, file_no_ext))
+        run("rm -rf {}{}/web_static".format(dir_path, file_no_ext))
+        run("rm -rf /data/web_static/current")
+        run("ln -s {}{}/ /data/web_static/current".format(
+            dir_path, file_no_ext))
         print("New version deployed!")
         return True
-    except Exception as e:
-        print("Error:", e)
+    except Exception:
         return False
